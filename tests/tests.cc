@@ -74,3 +74,83 @@ TEST_CASE("Example: Print Prompt Ledger", "[ex-3]") {
   atm.PrintLedger("./prompt.txt", 12345678, 1234);
   REQUIRE(CompareFiles("./ex-1.txt", "./prompt.txt"));
 }
+
+
+TEST("BankTests", "RegisterAccount_Success") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.30);
+    // Should not throw, account should exist
+    EXPECT_NO_THROW(bank.RegisterAccount(98765432, 4321, "John Doe", 1000.0));
+}
+
+TEST("BankTests", "RegisterAccount_DuplicateThrows") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.30);
+    EXPECT_THROW(bank.RegisterAccount(12345678, 1234, "Duplicate", 500.0), std::invalid_argument);
+}
+
+TEST("BankTests", "WithdrawCash_Success") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.30);
+    EXPECT_NO_THROW(bank.WithdrawCash(12345678, 1234, 200.0));
+}
+
+TEST("BankTests", "WithdrawCash_InsufficientFundsThrows") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 100.0);
+    EXPECT_THROW(bank.WithdrawCash(12345678, 1234, 200.0), std::runtime_error);
+}
+
+TEST("BankTests", "WithdrawCash_InvalidAccountThrows") {
+    Bank bank;
+    EXPECT_THROW(bank.WithdrawCash(11111111, 9999, 50.0), std::invalid_argument);
+}
+
+TEST("BankTests", "WithdrawCash_NegativeAmountThrows") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.0);
+    EXPECT_THROW(bank.WithdrawCash(12345678, 1234, -50.0), std::invalid_argument);
+}
+
+TEST("BankTests", "DepositCash_Success") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.0);
+    EXPECT_NO_THROW(bank.DepositCash(12345678, 1234, 200.0));
+}
+
+TEST("BankTests", "DepositCash_InvalidAccountThrows") {
+    Bank bank;
+    EXPECT_THROW(bank.DepositCash(11111111, 9999, 200.0), std::invalid_argument);
+}
+
+TEST("BankTests", "DepositCash_NegativeAmountThrows") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.0);
+    EXPECT_THROW(bank.DepositCash(12345678, 1234, -200.0), std::invalid_argument);
+}
+
+TEST("BankTests", "PrintLedger_Success") {
+    Bank bank;
+    bank.RegisterAccount(12345678, 1234, "Sam Sepiol", 300.30);
+    bank.WithdrawCash(12345678, 1234, 200.40);
+    bank.DepositCash(12345678, 1234, 40000.0);
+    bank.DepositCash(12345678, 1234, 32000.0);
+
+    std::string filepath = "ledger_test.txt";
+    EXPECT_NO_THROW(bank.PrintLedger(filepath, 12345678, 1234));
+
+    // Verify file content
+    std::ifstream file(filepath);
+    std::string content((std::istreambuf_iterator<char>(file)),
+                         std::istreambuf_iterator<char>());
+    EXPECT_NE(content.find("Sam Sepiol"), std::string::npos);
+    EXPECT_NE(content.find("Withdrawal - Amount: $200.40"), std::string::npos);
+    EXPECT_NE(content.find("Deposit - Amount: $40000.00"), std::string::npos);
+    EXPECT_NE(content.find("Deposit - Amount: $32000.00"), std::string::npos);
+}
+
+TEST("BankTests", "PrintLedger_InvalidAccountThrows") {
+    Bank bank;
+    EXPECT_THROW(bank.PrintLedger("ledger_fail.txt", 12345678, 1234), std::invalid_argument);
+}
+
